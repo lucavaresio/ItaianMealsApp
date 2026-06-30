@@ -8,6 +8,12 @@ import {
   Text,
   View,
 } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import MealCard from "../components/MealCard";
+import { useFavorites } from "../context/FavoritesContext";
+import { useAuth } from "../context/AuthContext";
+import { fetchItalianMeals } from "../services/mealsApi";
+import type { RootStackParamList } from "../../App";
 
 export interface MealSummary {
   idMeal: string;
@@ -15,30 +21,66 @@ export interface MealSummary {
   strMealThumb: string;
 }
 
-interface HomeScreenProps {
-  items: MealSummary[];
-  status: "idle" | "loading" | "success" | "error";
-  message: string;
-  favoriteIds: string[];
-  onSelectMeal: (idMeal: string) => void;
-  onToggleFavorite: (idMeal: string) => void;
-  onRetry: () => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-export default function HomeScreen({
-  items,
-  status,
-  message,
-  favoriteIds,
-  onSelectMeal,
-  onToggleFavorite,
-  onRetry,
-}: HomeScreenProps) {
-  if (status === "error") {
+export default function HomeScreen({ navigation }: Props) {
+  // Lab 17: preferiti dal Context
+  const { favoriteIds } = useFavorites();
+  // Login: utente loggato dal Context, per mostrare l'avatar nell'header
+  const { user } = useAuth();
+
+  const [state, setState] = React.useState<{
+    status: "idle" | "loading" | "success" | "error";
+    items: MealSummary[];
+    message: string;
+  }>({
+    status: "idle",
+    items: [],
+    message: "",
+  });
+
+  const loadMeals = React.useCallback(async () => {
+    setState({ status: "loading", items: [], message: "" });
+    try {
+      const data = await fetchItalianMeals();
+      setState({ status: "success", items: data, message: "" });
+    } catch {
+      setState({
+        status: "error",
+        items: [],
+        message: "Caricamento fallito. Controlla la connessione.",
+      });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadMeals();
+  }, [loadMeals]);
+
+  // Avatar utente + contatore preferiti nell'header dello stack (lab 13 style)
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerRight}>
+          <Pressable
+            style={styles.favBadge}
+            onPress={() => navigation.navigate("Favorites")}
+          >
+            <Text style={styles.favBadgeText}>{`♥ ${favoriteIds.length}`}</Text>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate("Profile")}>
+            <Image source={{ uri: user?.avatarUri }} style={styles.avatar} />
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation, favoriteIds.length, user]);
+
+  if (state.status === "error") {
     return (
       <View style={styles.container}>
-        <Text style={styles.error}>{message}</Text>
-        <Pressable style={styles.button} onPress={onRetry}>
+        <Text style={styles.error}>{state.message}</Text>
+        <Pressable style={styles.button} onPress={loadMeals}>
           <Text style={styles.buttonText}>Retry</Text>
         </Pressable>
       </View>
@@ -52,35 +94,22 @@ export default function HomeScreen({
         Preferiti salvati: {favoriteIds.length} (chiave app:v1:favs)
       </Text>
 
-      {status === "loading" ? (
+      {state.status === "loading" ? (
         <View style={styles.centered}>
           <ActivityIndicator />
           <Text>Caricamento...</Text>
         </View>
       ) : (
         <FlatList
-          data={items}
+          data={state.items}
           keyExtractor={(item) => item.idMeal}
           contentContainerStyle={{ gap: 4 }}
-          renderItem={({ item }) => {
-            const active = favoriteIds.includes(item.idMeal);
-            return (
-              <Pressable onPress={() => onSelectMeal(item.idMeal)}>
-                <View style={styles.row}>
-                  <Image source={{ uri: item.strMealThumb }} style={styles.thumb} />
-                  <Text style={styles.mealName} numberOfLines={2}>
-                    {item.strMeal}
-                  </Text>
-                  <Pressable
-                    style={styles.favButton}
-                    onPress={() => onToggleFavorite(item.idMeal)}
-                  >
-                    <Text style={styles.favText}>{active ? "♥" : "♡"}</Text>
-                  </Pressable>
-                </View>
-              </Pressable>
-            );
-          }}
+          renderItem={({ item }) => (
+            <MealCard
+              item={item}
+              onPress={(idMeal) => navigation.navigate("Detail", { mealId: idMeal })}
+            />
+          )}
         />
       )}
     </View>
@@ -127,29 +156,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#8a4b12",
   },
-  row: {
+  headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: "#ffffff",
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    gap: 10,
+    marginRight: 4,
   },
-  thumb: { width: 56, height: 56, borderRadius: 10 },
-  mealName: { flex: 1, fontWeight: "600", color: "#2f2a24" },
-  favButton: {
-    padding: 8,
-    borderWidth: 1,
+  favBadge: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     borderRadius: 999,
+    borderWidth: 1,
     borderColor: "#f2d2a2",
     backgroundColor: "#fff7eb",
   },
-  favText: { fontSize: 18 },
+  favBadgeText: { fontWeight: "700", color: "#c0392b", fontSize: 13 },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#f2d2a2",
+  },
 });

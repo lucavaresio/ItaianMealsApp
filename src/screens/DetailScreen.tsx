@@ -2,22 +2,33 @@ import React from "react";
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import FavoriteButton from "../components/FavoriteButton";
 import { fetchMealById } from "../services/mealsApi";
+import type { RootStackParamList } from "../../App";
 
-interface DetailScreenProps {
-  mealId: string;
-  onBack: () => void;
-}
+type Props = NativeStackScreenProps<RootStackParamList, "Detail">;
 
-export default function DetailScreen({ mealId, onBack }: DetailScreenProps) {
+export default function DetailScreen({ navigation, route }: Props) {
+  // Lab 13/14: id del piatto passato via route params (anche da deep link)
+  const mealId = route.params?.mealId;
+
   const [meal, setMeal] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+
+  // Cuoricino preferito nell'header, sincronizzato col FavoritesContext (lab 17)
+  React.useLayoutEffect(() => {
+    if (mealId) {
+      navigation.setOptions({
+        headerRight: () => <FavoriteButton idMeal={mealId} size={20} />,
+      });
+    }
+  }, [navigation, mealId]);
 
   React.useEffect(() => {
     let active = true;
@@ -38,6 +49,8 @@ export default function DetailScreen({ mealId, onBack }: DetailScreenProps) {
 
     if (mealId) {
       loadMeal();
+    } else {
+      setLoading(false);
     }
 
     return () => {
@@ -45,16 +58,17 @@ export default function DetailScreen({ mealId, onBack }: DetailScreenProps) {
     };
   }, [mealId]);
 
+  // Edge case lab 13/14: id mancante
   if (!mealId) {
-    return null;
+    return (
+      <View style={styles.centered}>
+        <Text>Invalid route param</Text>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backText}>← Torna indietro</Text>
-      </Pressable>
-
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator />
@@ -72,7 +86,8 @@ export default function DetailScreen({ mealId, onBack }: DetailScreenProps) {
           <Text style={styles.instructions}>{meal.strInstructions}</Text>
         </ScrollView>
       ) : (
-        <Text>Non è stato possibile caricare il piatto.</Text>
+        // Edge case lab 13/14: item non trovato (es. id inesistente da deep link)
+        <Text style={styles.notFound}>Product not found</Text>
       )}
     </View>
   );
@@ -89,19 +104,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
-  },
-  backButton: {
-    marginBottom: 12,
-    alignSelf: "flex-start",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: "#fff2e2",
-  },
-  backText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#8a4b12",
   },
   content: { gap: 10, paddingBottom: 24 },
   image: {
@@ -125,4 +127,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: "#4f463f",
   },
+  notFound: { padding: 16, color: "#7a6f65" },
 });

@@ -1,103 +1,97 @@
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import HomeScreen, { type MealSummary } from "./src/screens/HomeScreen";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import * as Linking from "expo-linking";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { FavoritesProvider } from "./src/context/FavoritesContext";
+import LoginScreen from "./src/screens/LoginScreen";
+import HomeScreen from "./src/screens/HomeScreen";
 import DetailScreen from "./src/screens/DetailScreen";
-import { fetchItalianMeals } from "./src/services/mealsApi";
-import { loadFavoriteIds, saveFavoriteIds } from "./src/services/storage";
+import FavoritesScreen from "./src/screens/FavoritesScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 
-export default function App() {
-  const [state, setState] = React.useState<{
-    status: "idle" | "loading" | "success" | "error";
-    items: MealSummary[];
-    message: string;
-  }>({
-    status: "idle",
-    items: [],
-    message: "",
-  });
-  const [favoriteIds, setFavoriteIds] = React.useState<string[]>([]);
-  const [favoritesLoaded, setFavoritesLoaded] = React.useState(false);
-  const [screen, setScreen] = React.useState<"home" | "detail">("home");
-  const [selectedMealId, setSelectedMealId] = React.useState<string | null>(null);
+// Lab 13/14: param list dello stack, condivisa da tutte le screen
+export type RootStackParamList = {
+  Login: undefined;
+  Home: undefined;
+  Detail: { mealId: string };
+  Favorites: undefined;
+  Profile: undefined;
+};
 
-  React.useEffect(() => {
-    loadFavoriteIds()
-      .then(setFavoriteIds)
-      .finally(() => setFavoritesLoaded(true));
-  }, []);
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-  async function loadMeals() {
-    setState({ status: "loading", items: [], message: "" });
-    try {
-      const data = await fetchItalianMeals();
-      setState({ status: "success", items: data, message: "" });
-    } catch {
-      setState({
-        status: "error",
-        items: [],
-        message: "Caricamento fallito. Controlla la connessione.",
-      });
-    }
-  }
-
-  React.useEffect(() => {
-    loadMeals();
-  }, []);
-
-  function toggleFavorite(idMeal: string) {
-    setFavoriteIds((current) => {
-      const next = current.includes(idMeal)
-        ? current.filter((id) => id !== idMeal)
-        : [...current, idMeal];
-      void saveFavoriteIds(next);
-      return next;
-    });
-  }
-
-  function openDetail(idMeal: string) {
-    setSelectedMealId(idMeal);
-    setScreen("detail");
-  }
-
-  function goHome() {
-    setScreen("home");
-    setSelectedMealId(null);
-  }
-
-  if (!favoritesLoaded || state.status === "loading") {
-    return (
-      <SafeAreaProvider>
-        <SafeAreaView style={styles.centered}>
-          <ActivityIndicator />
-          <Text>Caricamento...</Text>
-        </SafeAreaView>
-      </SafeAreaProvider>
-    );
-  }
+function RootNavigator() {
+  const { user } = useAuth();
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        {screen === "home" ? (
-          <HomeScreen
-            items={state.items}
-            status={state.status}
-            message={state.message}
-            favoriteIds={favoriteIds}
-            onSelectMeal={openDetail}
-            onToggleFavorite={toggleFavorite}
-            onRetry={loadMeals}
+    <Stack.Navigator>
+      {user ? (
+        <>
+          <Stack.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{ title: "Piatti italiani" }}
           />
-        ) : (
-          <DetailScreen mealId={selectedMealId ?? ""} onBack={goHome} />
-        )}
-      </SafeAreaView>
-    </SafeAreaProvider>
+          <Stack.Screen
+            name="Detail"
+            component={DetailScreen}
+            options={{ title: "Dettaglio" }}
+          />
+          <Stack.Screen
+            name="Favorites"
+            component={FavoritesScreen}
+            options={{ title: "I tuoi preferiti" }}
+          />
+          <Stack.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={{ title: "Profilo" }}
+          />
+        </>
+      ) : (
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+      )}
+    </Stack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centered: { flex: 1, padding: 16, gap: 8, justifyContent: "center" },
-});
+export default function App() {
+  const linking = React.useMemo(() => {
+    let expoPrefix = "italianmealsapp://";
+    try {
+      expoPrefix = Linking.createURL("/");
+    } catch {
+      
+    }
+    return {
+      prefixes: Array.from(new Set([expoPrefix, "italianmealsapp://"])),
+      config: {
+        screens: {
+          Login: "login",
+          Home: "home",
+          Detail: "details/:mealId",
+          Favorites: "favorites",
+          Profile: "profile",
+        },
+      },
+    };
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <FavoritesProvider>
+          <NavigationContainer linking={linking}>
+            <RootNavigator />
+          </NavigationContainer>
+        </FavoritesProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
