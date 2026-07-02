@@ -1,7 +1,3 @@
-// context/AuthContext.tsx
-// Login globale: usa MOCK_USERS/validateLogin da services/auth.ts (gia' presente
-// nel progetto) ed espone l'utente loggato a tutta l'app tramite Context,
-// sullo stesso pattern di FavoritesContext (lab 17).
 import React from "react";
 import { validateLogin } from "../services/auth";
 
@@ -17,26 +13,31 @@ interface AuthContextValue {
   logout: () => void;
 }
 
-const AuthContext = React.createContext<AuthContextValue | undefined>(
-  undefined,
-);
+const AuthContext = React.createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = React.useState<AuthUser | null>(null);
+  const [user, setUser] = React.useState<AuthUser | null>(() => {
+    const savedUser = localStorage.getItem("auth_user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
   function login(email: string, password: string): boolean {
     const match = validateLogin(email, password);
     if (!match) return false;
-    // Non teniamo la password nello stato: solo i dati da mostrare nel profilo
-    setUser({
+    
+    const loggedInUser: AuthUser = {
       email: match.email,
       name: match.name,
       avatarUri: match.avatarUri,
-    });
+    };
+    
+    localStorage.setItem("auth_user", JSON.stringify(loggedInUser));
+    setUser(loggedInUser);
     return true;
   }
 
   function logout() {
+    localStorage.removeItem("auth_user");
     setUser(null);
   }
 
