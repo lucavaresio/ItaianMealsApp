@@ -12,9 +12,9 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import MealCard from "../components/MealCard";
 import { useFavorites } from "../context/FavoritesContext";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { fetchItalianMeals } from "../services/mealsApi";
 import { createSharedStyles } from "../theme/styles";
-import { theme } from "../theme/colors";
 import type { RootStackParamList } from "../../App";
 
 export interface MealSummary {
@@ -25,13 +25,13 @@ export interface MealSummary {
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-const styles = createSharedStyles(theme);
-
 const WIDE_BREAKPOINT = 600;
 
 export default function HomeScreen({ navigation }: Props) {
   const { favoriteIds } = useFavorites();
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const styles = React.useMemo(() => createSharedStyles(theme), [theme]);
   const { width } = useWindowDimensions();
   const isWide = width >= WIDE_BREAKPOINT;
   const numColumns = isWide ? 2 : 1;
@@ -71,16 +71,22 @@ export default function HomeScreen({ navigation }: Props) {
           <Pressable
             style={styles.favBadge}
             onPress={() => navigation.navigate("Favorites")}
+            accessibilityRole="button"
+            accessibilityLabel={`Preferiti: ${favoriteIds.length}`}
           >
             <Text style={styles.favBadgeText}>{`♥ ${favoriteIds.length}`}</Text>
           </Pressable>
-          <Pressable onPress={() => navigation.navigate("Profile")}>
+          <Pressable
+            onPress={() => navigation.navigate("Profile")}
+            accessibilityRole="button"
+            accessibilityLabel="Apri profilo e impostazioni"
+          >
             <Image source={{ uri: user?.avatarUri }} style={styles.avatar} />
           </Pressable>
         </View>
       ),
     });
-  }, [navigation, favoriteIds.length, user]);
+  }, [navigation, favoriteIds.length, user, styles]);
 
   if (state.status === "error") {
     return (
@@ -95,7 +101,9 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.title}>Piatti italiani</Text>
+      <Text accessibilityRole="header" style={styles.title}>
+        Piatti italiani
+      </Text>
       <Text style={styles.subtitle}>
         Preferiti salvati: {favoriteIds.length} (chiave app:v1:favs)
       </Text>

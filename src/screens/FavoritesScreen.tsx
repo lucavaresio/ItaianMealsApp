@@ -3,19 +3,19 @@ import { ActivityIndicator, FlatList, Text, View, useWindowDimensions } from "re
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import MealCard, { type MealCardItem } from "../components/MealCard";
 import { useFavorites } from "../context/FavoritesContext";
+import { useTheme } from "../context/ThemeContext";
 import { fetchItalianMeals } from "../services/mealsApi";
 import { createSharedStyles } from "../theme/styles";
-import { theme } from "../theme/colors";
 import type { RootStackParamList } from "../../App";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Favorites">;
-
-const styles = createSharedStyles(theme);
 
 const WIDE_BREAKPOINT = 600;
 
 export default function FavoritesScreen({ navigation }: Props) {
   const { favoriteIds } = useFavorites();
+  const { theme } = useTheme();
+  const styles = React.useMemo(() => createSharedStyles(theme), [theme]);
   const { width } = useWindowDimensions();
   const isWide = width >= WIDE_BREAKPOINT;
   const numColumns = isWide ? 2 : 1;
@@ -47,7 +47,9 @@ export default function FavoritesScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.title}>I tuoi preferiti</Text>
+      <Text accessibilityRole="header" style={styles.title}>
+        I tuoi preferiti
+      </Text>
 
       {status === "loading" ? (
         <View style={styles.centered}>

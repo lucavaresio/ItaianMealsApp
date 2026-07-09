@@ -26,7 +26,7 @@ export function createSharedStyles(theme: Theme) {
     title: {
       fontSize: 24,
       fontWeight: "700",
-      color: colors.textPrimary,
+      color: colors.text,
     },
     subtitle: {
       color: colors.textSecondary,
@@ -66,12 +66,12 @@ export function createSharedStyles(theme: Theme) {
       paddingHorizontal: spacing.sm + 2,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: colors.accentBorder,
-      backgroundColor: colors.accentBackground,
+      borderColor: colors.primaryBorder,
+      backgroundColor: colors.primaryBackground,
     },
     favBadgeText: {
       fontWeight: "700",
-      color: colors.accent,
+      color: colors.primary,
       fontSize: 13,
     },
     avatar: {
@@ -79,7 +79,7 @@ export function createSharedStyles(theme: Theme) {
       height: 32,
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: colors.accentBorder,
+      borderColor: colors.primaryBorder,
     },
     flatListContent: {
       gap: spacing.sm,
@@ -98,6 +98,8 @@ export function createSharedStyles(theme: Theme) {
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.sm + 2,
       borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
       backgroundColor: colors.surface,
       shadowColor: "#000",
       shadowOpacity: 0.06,
@@ -113,8 +115,27 @@ export function createSharedStyles(theme: Theme) {
     listTitle: {
       flex: 1,
       fontWeight: "600",
-      color: colors.textPrimary,
+      color: colors.text,
       flexShrink: 1,
+    },
+    pressedFeedback: {
+      opacity: 0.7,
+    },
+    switchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    switchLabel: {
+      flex: 1,
+      fontWeight: "600",
+      color: colors.text,
     },
   });
 }

@@ -5,6 +5,7 @@ import * as Linking from "expo-linking";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { FavoritesProvider } from "./src/context/FavoritesContext";
+import { ThemeProvider } from "./src/context/ThemeContext";
 import LoginScreen from "./src/screens/LoginScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import DetailScreen from "./src/screens/DetailScreen";
@@ -85,13 +86,15 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <FavoritesProvider>
-          <NavigationContainer linking={linking}>
-            <RootNavigator />
-          </NavigationContainer>
-        </FavoritesProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <FavoritesProvider>
+            <NavigationContainer linking={linking}>
+              <RootNavigator />
+            </NavigationContainer>
+          </FavoritesProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
