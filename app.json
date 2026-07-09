@@ -20,6 +20,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Consente a Italian Meals App di mostrare la tua posizione in Impostazioni."
+        }
+      ]
+    ]
   }
 }
