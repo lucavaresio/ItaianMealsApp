@@ -4,15 +4,17 @@ import {
   FlatList,
   Image,
   Pressable,
-  StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import MealCard from "../components/MealCard";
 import { useFavorites } from "../context/FavoritesContext";
 import { useAuth } from "../context/AuthContext";
 import { fetchItalianMeals } from "../services/mealsApi";
+import { createSharedStyles } from "../theme/styles";
+import { theme } from "../theme/colors";
 import type { RootStackParamList } from "../../App";
 
 export interface MealSummary {
@@ -23,11 +25,16 @@ export interface MealSummary {
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
+const styles = createSharedStyles(theme);
+
+const WIDE_BREAKPOINT = 600;
+
 export default function HomeScreen({ navigation }: Props) {
-  // Lab 17: preferiti dal Context
   const { favoriteIds } = useFavorites();
-  // Login: utente loggato dal Context, per mostrare l'avatar nell'header
   const { user } = useAuth();
+  const { width } = useWindowDimensions();
+  const isWide = width >= WIDE_BREAKPOINT;
+  const numColumns = isWide ? 2 : 1;
 
   const [state, setState] = React.useState<{
     status: "idle" | "loading" | "success" | "error";
@@ -57,7 +64,6 @@ export default function HomeScreen({ navigation }: Props) {
     loadMeals();
   }, [loadMeals]);
 
-  // Avatar utente + contatore preferiti nell'header dello stack (lab 13 style)
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -78,7 +84,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   if (state.status === "error") {
     return (
-      <View style={styles.container}>
+      <View style={styles.screen}>
         <Text style={styles.error}>{state.message}</Text>
         <Pressable style={styles.button} onPress={loadMeals}>
           <Text style={styles.buttonText}>Retry</Text>
@@ -88,7 +94,7 @@ export default function HomeScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <Text style={styles.title}>Piatti italiani</Text>
       <Text style={styles.subtitle}>
         Preferiti salvati: {favoriteIds.length} (chiave app:v1:favs)
@@ -99,83 +105,28 @@ export default function HomeScreen({ navigation }: Props) {
           <ActivityIndicator />
           <Text>Caricamento...</Text>
         </View>
+      ) : state.items.length === 0 ? (
+        <View style={styles.centered}>
+          <Text style={styles.emptyText}>Nessun piatto trovato.</Text>
+        </View>
       ) : (
         <FlatList
+          key={`cols-${numColumns}`}
           data={state.items}
           keyExtractor={(item) => item.idMeal}
-          contentContainerStyle={{ gap: 4 }}
+          numColumns={numColumns}
+          columnWrapperStyle={isWide ? styles.columnWrapper : undefined}
+          contentContainerStyle={styles.flatListContent}
           renderItem={({ item }) => (
-            <MealCard
-              item={item}
-              onPress={(idMeal) => navigation.navigate("Detail", { mealId: idMeal })}
-            />
+            <View style={styles.gridItem}>
+              <MealCard
+                item={item}
+                onPress={(idMeal) => navigation.navigate("Detail", { mealId: idMeal })}
+              />
+            </View>
           )}
         />
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 18,
-    gap: 12,
-    backgroundColor: "#fffaf5",
-  },
-  centered: {
-    flex: 1,
-    padding: 16,
-    gap: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#2f2a24",
-  },
-  subtitle: {
-    color: "#7a6f65",
-    fontSize: 13,
-  },
-  error: {
-    color: "#b42318",
-    fontWeight: "600",
-  },
-  button: {
-    alignSelf: "flex-start",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderRadius: 999,
-    borderColor: "#f0b46e",
-    backgroundColor: "#fff2e2",
-  },
-  buttonText: {
-    fontWeight: "600",
-    color: "#8a4b12",
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginRight: 4,
-  },
-  favBadge: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#f2d2a2",
-    backgroundColor: "#fff7eb",
-  },
-  favBadgeText: { fontWeight: "700", color: "#c0392b", fontSize: 13 },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#f2d2a2",
-  },
-});
